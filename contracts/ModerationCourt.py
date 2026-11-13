@@ -48,7 +48,9 @@ class ModerationCourt(gl.Contract):
         )
 
         def leader_fn():
-            data = json.loads(gl.nondet.exec_prompt(prompt))
+            data = gl.nondet.exec_prompt(prompt, response_format='json')
+            if not isinstance(data, dict):
+                raise gl.vm.UserError('LLM did not return an object')
             if data.get("outcome") not in allowed:
                 raise gl.vm.UserError("Invalid outcome")
             if not isinstance(data.get("quote"), str) or not data["quote"] or data["quote"] not in brief:
@@ -57,18 +59,20 @@ class ModerationCourt(gl.Contract):
                 raise gl.vm.UserError("Unsupported rule")
             if not isinstance(data.get("reason"), str) or not data["reason"].strip():
                 raise gl.vm.UserError("Missing explanation")
-            return json.dumps({
+            return {
                 "outcome": data["outcome"],
                 "quote": data["quote"],
                 "clause": data["clause"],
                 "reason": data["reason"][:1600]
-            }, sort_keys=True)
+            }
 
         def validator_fn(candidate):
             if not isinstance(candidate, gl.vm.Return):
                 return False
             try:
-                proposed = json.loads(candidate.calldata)
+                proposed = candidate.calldata
+                if not isinstance(proposed, dict):
+                    return False
                 if proposed.get("outcome") not in allowed:
                     return False
                 if not proposed.get("quote") or proposed["quote"] not in brief:
@@ -79,12 +83,12 @@ class ModerationCourt(gl.Contract):
                     return False
                 # Independent LLM assessment. Checking only the leader JSON shape
                 # would not provide meaningful validator consensus.
-                independent = json.loads(leader_fn())
+                independent = leader_fn()
                 return independent["outcome"] == proposed["outcome"]
             except Exception:
                 return False
 
-        agreed = json.loads(gl.vm.run_nondet_unsafe(leader_fn, validator_fn))
+        agreed = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
         if agreed["outcome"] not in allowed or agreed["quote"] not in brief or agreed["clause"] not in rubric:
             raise gl.vm.UserError("Consensus result not grounded in evidence")
         self.decisions[case_id] = json.dumps({
