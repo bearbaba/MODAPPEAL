@@ -12,3 +12,4 @@ jobs:
         with:
           node-version: '24'
       - run: npm run check
+      - run: python3 -m py_compile contracts/*.py

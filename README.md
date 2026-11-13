@@ -25,3 +25,7 @@ Open http://127.0.0.1:4100. The app binds exclusively to `127.0.0.1`, uses sampl
 Endpoints: `GET /api/state`, `POST /api/cases`, `POST /api/cases/:id/respond|freeze|decide|revision|execute`, `GET /api/cases/:id`.
 
 Read [acceptance evidence and gaps](docs/ACCEPTANCE.md) before treating the prototype as production-ready.
+
+## Contract source
+
+A non-deployed GenLayer Intelligent Contract source draft is included at [contracts/ModerationCourt.py](contracts/ModerationCourt.py). It requires GenVM validation, deployment, independent consensus and API wiring. See [contract verification notes](docs/GENLAYER.md).
